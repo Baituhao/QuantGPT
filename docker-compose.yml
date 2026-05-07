@@ -1,0 +1,17 @@
+services:
+  quantgpt:
+    build: .
+    ports:
+      - "8003:8003"
+    volumes:
+      - quantgpt-data:/app/data
+      - quantgpt-reports:/app/reports
+    env_file:
+      - .env
+    environment:
+      - AUTH_DISABLED=true
+    restart: unless-stopped
+
+volumes:
+  quantgpt-data:
+  quantgpt-reports:

@@ -51,6 +51,7 @@ def _fitness_to_grade(fitness: float | None) -> str:
 
 class WQBrainSubmitRequest(BaseModel):
     expression: str = Field(..., description="FASTEXPR factor expression")
+    tag: str = Field(..., min_length=1, max_length=100, description="Submitter tag (e.g. 'agent-lowcorr-0506')")
     region: str = Field("USA", description="Market region")
     universe: str = Field("TOP3000", description="WQ Universe")
     delay: int = Field(1, ge=0, le=1, description="Signal delay")
@@ -123,7 +124,7 @@ def _run_wq_brain_task(task_id: str, req: WQBrainSubmitRequest, user_id: str):
                     region=req.region, universe=req.universe, delay=req.delay,
                     decay=req.decay, neutralization=req.neutralization,
                     truncation=req.truncation, sharpe=sharpe, fitness=fitness,
-                    returns=returns_val, turnover=turnover,
+                    returns=returns_val, turnover=turnover, tag=req.tag,
                 )
             except Exception as e:
                 logger.warning(f"[{task_id}] alpha tracking failed: {e}")
@@ -310,6 +311,7 @@ async def list_submitted_alphas(
             {
                 "alpha_id": a.alpha_id,
                 "expression": a.expression,
+                "tag": a.tag,
                 "region": a.region,
                 "universe": a.universe,
                 "delay": a.delay,
@@ -374,6 +376,7 @@ async def submit_alpha_from_task(
                 fitness=_safe_float(is_metrics.get("fitness")),
                 returns=_safe_float(is_metrics.get("returns")),
                 turnover=_safe_float(is_metrics.get("turnover")),
+                tag=params.get("tag"),
             )
         except Exception as e:
             logger.warning(f"Alpha tracking failed for manual submit: {e}")
@@ -419,4 +422,44 @@ async def submit_alpha_by_id(
     result = client.submit_alpha(alpha_id)
     client.close()
     logger.info(f"submit-by-id {alpha_id}: {result}")
+    return result
+
+
+@router.delete("/alpha/{alpha_id}")
+async def delete_alpha(
+    alpha_id: str,
+    account: str = "primary",
+    user: User = Depends(get_current_user),
+):
+    """Delete/retire an alpha from the WQ BRAIN platform."""
+    if not is_configured(account):
+        raise HTTPException(status_code=503, detail="WQ BRAIN 未配置")
+    client = get_client(account)
+    if not client.authenticate():
+        raise HTTPException(status_code=502, detail="WQ BRAIN 认证失败")
+    result = client.delete_alpha(alpha_id)
+    client.close()
+    logger.info(f"delete-alpha {alpha_id}: {result}")
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("detail", "删除失败"))
+    return result
+
+
+@router.post("/alpha/{alpha_id}/unhide")
+async def unhide_alpha(
+    alpha_id: str,
+    account: str = "primary",
+    user: User = Depends(get_current_user),
+):
+    """Restore a hidden alpha on WQ BRAIN platform."""
+    if not is_configured(account):
+        raise HTTPException(status_code=503, detail="WQ BRAIN 未配置")
+    client = get_client(account)
+    if not client.authenticate():
+        raise HTTPException(status_code=502, detail="WQ BRAIN 认证失败")
+    result = client.unhide_alpha(alpha_id)
+    client.close()
+    logger.info(f"unhide-alpha {alpha_id}: {result}")
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("detail", "恢复失败"))
     return result

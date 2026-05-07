@@ -392,6 +392,33 @@ curl -X POST http://localhost:8003/api/v1/auto_backtest \
   -d '{"expression": "rank(close / ts_mean(close, 20))", "universe": "hs300"}'
 ```
 
+### Windows Quick Start
+
+Windows 用户不需要 `make` 和 `restart.sh`，手动执行即可：
+
+```powershell
+# 1. 克隆项目
+git clone https://github.com/Miasyster/QuantGPT.git
+cd QuantGPT
+
+# 2. 创建虚拟环境并安装依赖
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+# 3. 构建前端（需要 Node.js，从 nodejs.org 下载 LTS 版本）
+cd frontend && npm install && npm run build && cd ..
+
+# 4. 启动服务
+python -m quantgpt --transport http
+# 浏览器打开 http://localhost:8003
+```
+
+> **注意：**
+> - 推荐 Python 3.11 或 3.12（3.14 太新，部分依赖可能不兼容）
+> - 如果端口被占用：`netstat -ano | findstr :8003` 查进程，`taskkill /PID <pid> /F` 杀掉
+> - 也可以使用 WSL2（`wsl --install`），体验与 macOS/Linux 完全一致
+
 **Zero config by default**: SQLite database, baostock + akshare free data. See [full Quick Start guide](docs/QUICKSTART.md) for details.
 
 <details>

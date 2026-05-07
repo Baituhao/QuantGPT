@@ -545,6 +545,7 @@ async def run_rolling_validation(
 @mcp.tool()
 async def wq_brain_submit(
     expression: str,
+    tag: str,
     region: str = "USA",
     universe: str = "TOP3000",
     delay: int = 1,
@@ -562,6 +563,7 @@ async def wq_brain_submit(
 
     Args:
         expression: FASTEXPR 表达式 (如 "rank(close/open)")
+        tag: 提交者标识 (如 "agent-lowcorr-0506")，用于追踪哪个 agent 提交
         region: 市场区域 (USA, CHN 等)
         universe: WQ Universe (TOP3000, TOP500 等)
         delay: 信号延迟 (0 或 1)
@@ -615,6 +617,7 @@ async def wq_brain_submit(
 
         output = {
             "expression": expression,
+            "tag": tag,
             "alpha_id": alpha_id,
             "is_metrics": result.get("is", {}),
             "oos_metrics": result.get("oos", {}),
@@ -639,6 +642,7 @@ async def wq_brain_submit(
 @mcp.tool()
 async def wq_brain_batch_submit(
     expression: str,
+    tag: str,
     regions: list[str] | None = None,
     delays: list[int] | None = None,
     universes: list[str] | None = None,
@@ -654,6 +658,7 @@ async def wq_brain_batch_submit(
 
     Args:
         expression: FASTEXPR 表达式
+        tag: 提交者标识 (如 "agent-lowcorr-0506")，用于追踪哪个 agent 提交
         regions: 市场区域列表 (默认 ["USA"])
         delays: 信号延迟列表 (默认 [1])
         universes: Universe 列表 (默认 ["TOP3000"])

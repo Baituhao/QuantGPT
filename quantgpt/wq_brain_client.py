@@ -398,3 +398,24 @@ class WQBrainClient:
             "platform_status": "TIMEOUT",
         }
 
+    def delete_alpha(self, alpha_id: str) -> dict:
+        """Delete/retire an alpha from the platform."""
+        s = self._get_session()
+        r = s.delete(f"{API_BASE}/alphas/{alpha_id}")
+        if r.status_code in (200, 204):
+            return {"ok": True, "detail": f"Alpha {alpha_id} deleted"}
+        if r.status_code == 405:
+            r2 = s.patch(f"{API_BASE}/alphas/{alpha_id}", json={"hidden": True})
+            if r2.status_code in (200, 204):
+                return {"ok": True, "detail": f"Alpha {alpha_id} hidden via PATCH"}
+            return {"ok": False, "detail": f"DELETE 405, PATCH also failed: {r2.status_code} {r2.text[:200]}"}
+        return {"ok": False, "detail": f"DELETE failed: {r.status_code} {r.text[:200]}"}
+
+    def unhide_alpha(self, alpha_id: str) -> dict:
+        """Restore a hidden alpha."""
+        s = self._get_session()
+        r = s.patch(f"{API_BASE}/alphas/{alpha_id}", json={"hidden": False})
+        if r.status_code in (200, 204):
+            return {"ok": True, "detail": f"Alpha {alpha_id} restored"}
+        return {"ok": False, "detail": f"Unhide failed: {r.status_code} {r.text[:200]}"}
+

@@ -7,6 +7,7 @@ import re
 import secrets
 import threading
 import time
+import uuid as uuid_mod
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -139,7 +140,8 @@ def persist_task_to_db(task_id: str, user_id: str, task_data: dict, report_filen
         factory = _get_session_factory()
         async with factory() as session:
             try:
-                session_id = task_data.get("session_id")
+                raw_session_id = task_data.get("session_id")
+                session_id = uuid_mod.UUID(raw_session_id) if isinstance(raw_session_id, str) else raw_session_id
                 real_created = task_data.get("created_at")
                 real_completed = task_data.get("completed_at")
                 ts_created = None
@@ -151,7 +153,7 @@ def persist_task_to_db(task_id: str, user_id: str, task_data: dict, report_filen
 
                 task_record = TaskModel(
                     id=task_id,
-                    user_id=user_id,
+                    user_id=uuid_mod.UUID(user_id) if isinstance(user_id, str) else user_id,
                     session_id=session_id,
                     status=task_data.get("status", "failed"),
                     task_type=task_data.get("task_type", "backtest"),
@@ -168,7 +170,7 @@ def persist_task_to_db(task_id: str, user_id: str, task_data: dict, report_filen
 
                 if report_filename:
                     report_record = ReportModel(
-                        user_id=user_id,
+                        user_id=uuid_mod.UUID(user_id) if isinstance(user_id, str) else user_id,
                         task_id=task_id,
                         filename=report_filename,
                     )
@@ -252,7 +254,7 @@ def persist_report_to_db(task_id: str, user_id: str, report_filename: str):
         async with factory() as session:
             try:
                 report_record = ReportModel(
-                    user_id=user_id,
+                    user_id=uuid_mod.UUID(user_id) if isinstance(user_id, str) else user_id,
                     task_id=task_id,
                     filename=report_filename,
                 )

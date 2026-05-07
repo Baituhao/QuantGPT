@@ -37,6 +37,7 @@ FINALIZE_MAX_WAIT = int(os.environ.get("WQ_FINALIZE_MAX_WAIT", "7200"))
 
 class WQBrainBatchRequest(BaseModel):
     expression: str = Field(..., description="FASTEXPR factor expression")
+    tag: str = Field(..., min_length=1, max_length=100, description="Submitter tag (e.g. 'agent-lowcorr-0506')")
     regions: list[str] = Field(default=["USA"], description="Regions to sweep")
     delays: list[int] = Field(default=[1], description="Delays to sweep")
     universes: list[str] = Field(default=["TOP3000"], description="Universes to sweep")
@@ -222,7 +223,7 @@ def _run_batch_task(task_id: str, req: WQBrainBatchRequest, user_id: str):
                             region=region, universe=universe, delay=delay,
                             decay=req.decay, neutralization=neut,
                             truncation=req.truncation, sharpe=sharpe, fitness=fitness,
-                            returns=returns_val, turnover=turnover,
+                            returns=returns_val, turnover=turnover, tag=req.tag,
                         )
                     except Exception as e:
                         logger.warning(f"[{task_id}] alpha tracking failed for {key}: {e}")

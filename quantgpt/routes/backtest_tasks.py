@@ -506,7 +506,7 @@ async def list_tasks(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     session_id: str | None = Query(None, description="按会话 ID 过滤"),
-    task_type: str | None = Query(None, description="按任务类型过滤: backtest / strategy_backtest / iteration"),
+    task_type: str | None = Query(None, description="按任务类型过滤: backtest / iteration / composite"),
     status: str | None = Query(None, description="按状态过滤: completed / failed / pending"),
     rating: str | None = Query(None, description="按评级过滤: A / B / C / D"),
     user: User = Depends(get_current_user),

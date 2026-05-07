@@ -51,7 +51,27 @@ async def init_db():
     engine = _get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_migrate_add_columns)
     logger.info("Database tables created/verified")
+
+
+def _migrate_add_columns(connection):
+    """Add columns that were added after initial table creation."""
+    import sqlalchemy as sa
+    inspector = sa.inspect(connection)
+    _add_column_if_missing(
+        connection, inspector, "submitted_alphas", "tag",
+        "ALTER TABLE submitted_alphas ADD COLUMN tag VARCHAR(100)",
+    )
+
+
+def _add_column_if_missing(connection, inspector, table, column, ddl):
+    import sqlalchemy as sa
+    if inspector.has_table(table):
+        cols = [c["name"] for c in inspector.get_columns(table)]
+        if column not in cols:
+            connection.execute(sa.text(ddl))
+            logger.info(f"Migration: added column {table}.{column}")
 
 
 async def close_db():
