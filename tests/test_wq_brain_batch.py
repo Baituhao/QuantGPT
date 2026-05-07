@@ -139,27 +139,3 @@ class TestBatchRequestModel:
         assert req.tag == "test-sweep"
 
 
-class TestMCPTrackingBatch:
-    def test_extract_summary_batch(self):
-        import json
-        from quantgpt.mcp_tracking import _extract_summary
-
-        data = json.dumps({
-            "total_combinations": 8,
-            "best_fitness": 1.23,
-            "best_key": "USA_D1_TOP3000_SUBINDUSTRY",
-            "submittable_count": 2,
-        })
-        summary = _extract_summary(data, "mcp_wq_brain_batch")
-        assert summary["total_combinations"] == 8
-        assert summary["best_fitness"] == 1.23
-        assert summary["best_key"] == "USA_D1_TOP3000_SUBINDUSTRY"
-        assert summary["submittable_count"] == 2
-
-    def test_extract_summary_batch_error(self):
-        import json
-        from quantgpt.mcp_tracking import _extract_summary
-
-        data = json.dumps({"error": "WQ BRAIN 未配置"})
-        summary = _extract_summary(data, "mcp_wq_brain_batch")
-        assert "error" in summary

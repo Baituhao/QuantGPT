@@ -199,7 +199,14 @@ def persist_task_to_db(task_id: str, user_id: str, task_data: dict, report_filen
         except Exception as e:
             logger.error(f"[{task_id}] DB persist error: {e}")
     else:
-        logger.error(f"[{task_id}] main event loop not available for DB persist")
+        def _run():
+            try:
+                asyncio.run(_do_persist())
+            except Exception as e:
+                logger.error(f"[{task_id}] DB persist thread error: {e}")
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        t.join(timeout=30)
 
 
 # ---- SSE ticket store (short-lived, single-use) ----
