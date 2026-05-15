@@ -151,6 +151,23 @@ def run_single_simulation(
                 sc=submit_result.get("sc_value"), rev_src=rev_src, fund=fund, tag=tag,
             )
 
+    # Record simulation failures (fitness<1 or sharpe<1.25) regardless of auto_submit
+    if not submitted and alpha_id:
+        _sharpe = m["sharpe"] or 0
+        _fitness = m["fitness"] or 0
+        if _fitness < 1.0 or _sharpe < 1.25:
+            fail_status = "LOW_FITNESS_FAIL" if _fitness < 1.0 else "LOW_SHARPE_FAIL"
+            try:
+                record_alpha_result(
+                    alpha_id=alpha_id, expression=expression, status=fail_status,
+                    region=region, universe=universe, neutralization=neutralization,
+                    decay=decay, delay=delay, fitness=m["fitness"], sharpe=m["sharpe"],
+                    returns=m["returns"], turnover=m["turnover"],
+                    rev_src=rev_src, fund=fund, tag=tag,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to record simulation fail {alpha_id}: {e}")
+
     if submitted and alpha_id and user_id:
         _track_alpha(
             user_id=user_id, alpha_id=alpha_id, expression=expression,
