@@ -16,6 +16,8 @@ import logging
 import time
 from typing import Any, Callable
 
+from .alpha_result_recorder import move_timeout_to_resolved, record_alpha_result
+
 logger = logging.getLogger(__name__)
 
 
@@ -77,6 +79,24 @@ def _build_wq_result_block(sharpe, fitness, returns_val, turnover, grade):
 # Service functions (sync, stateless — caller manages client lifecycle)
 # ---------------------------------------------------------------------------
 
+
+def _record_submit_outcome(alpha_id: str, entry: dict) -> None:
+    """Record submit_by_ids outcome to JSONL. Minimal info (no expression available)."""
+    status = entry.get("final_status", "OTHER_FAIL")
+    sc_val = entry.get("sc_value")
+
+    try:
+        record_alpha_result(
+            alpha_id=alpha_id,
+            expression="",  # not available in submit_by_ids context
+            status=status,
+            sc=sc_val,
+            note=f"submit_by_ids: {entry.get('detail', '')[:100]}",
+        )
+    except Exception as e:
+        logger.warning(f"Failed to record alpha {alpha_id}: {e}")
+
+
 def run_single_simulation(
     client,
     expression: str,
@@ -89,6 +109,8 @@ def run_single_simulation(
     auto_submit: bool = False,
     user_id: str | None = None,
     tag: str | None = None,
+    rev_src: str | None = None,
+    fund: list[str] | None = None,
     progress_callback: Callable[[int, str], None] | None = None,
 ) -> dict:
     """Simulate one expression and optionally auto-submit. Returns result dict."""
@@ -110,6 +132,24 @@ def run_single_simulation(
     if auto_submit and alpha_id and grade == "A":
         submit_result = client.submit_alpha(alpha_id)
         submitted = submit_result.get("ok", False)
+
+        # Record submission outcome
+        if submitted:
+            record_alpha_result(
+                alpha_id=alpha_id, expression=expression, status="ACTIVE",
+                region=region, universe=universe, neutralization=neutralization,
+                decay=decay, delay=delay, fitness=m["fitness"], sharpe=m["sharpe"],
+                returns=m["returns"], turnover=m["turnover"],
+                rev_src=rev_src, fund=fund, tag=tag,
+            )
+        elif "SC FAIL" in submit_result.get("detail", ""):
+            record_alpha_result(
+                alpha_id=alpha_id, expression=expression, status="SC_FAIL",
+                region=region, universe=universe, neutralization=neutralization,
+                decay=decay, delay=delay, fitness=m["fitness"], sharpe=m["sharpe"],
+                returns=m["returns"], turnover=m["turnover"],
+                sc=submit_result.get("sc_value"), rev_src=rev_src, fund=fund, tag=tag,
+            )
 
     if submitted and alpha_id and user_id:
         _track_alpha(
@@ -249,6 +289,9 @@ def run_submit_by_ids(
             entry["final_status"] = "OTHER_FAIL"
 
         results[alpha_id] = entry
+
+        # Auto-record to JSONL
+        _record_submit_outcome(alpha_id, entry)
 
         if on_each_done:
             on_each_done(alpha_id, entry)

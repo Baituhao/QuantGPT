@@ -748,6 +748,36 @@ async def wq_brain_submit_by_ids(
 
 
 @mcp.tool()
+async def wq_brain_annotate(
+    alpha_id: str,
+    rev_src: str | None = None,
+    fund: list[str] | None = None,
+    note: str | None = None,
+) -> str:
+    """给已记录的 alpha 补充语义标注（rev_src / fund / note）。
+
+    在 docs/knowledge/data/*.jsonl 中查找该 alpha_id，更新指定字段。
+    用于 LLM 在提交后补充反转源类型、基本面字段、备注等语义信息。
+
+    Args:
+        alpha_id: 要标注的 alpha_id
+        rev_src: 反转源类型（如 "ts_zscore(close,10)"、"mid-price-delta(5)"）
+        fund: 基本面字段列表（如 ["sales/assets", "debt/assets"]）
+        note: 自由文本备注
+
+    Returns:
+        JSON with ok status and updated record.
+    """
+    from .alpha_result_recorder import annotate_alpha
+
+    if not any([rev_src, fund, note]):
+        return json.dumps({"error": "至少提供 rev_src / fund / note 中的一个"})
+
+    result = annotate_alpha(alpha_id=alpha_id, rev_src=rev_src, fund=fund, note=note)
+    return json.dumps(result, ensure_ascii=False, default=str)
+
+
+@mcp.tool()
 async def wq_brain_list_alphas(
     account: str = "primary",
     limit: int = 100,
