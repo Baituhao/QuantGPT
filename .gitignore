@@ -41,6 +41,9 @@ marketing/
 # Claude Code
 .claude/
 
+# Knowledge base (local research data, not source code)
+docs/knowledge/
+
 # Research notes (runtime artifacts, not source code)
 research_notes/
 docs/factor_research/
