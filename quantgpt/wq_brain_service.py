@@ -241,6 +241,38 @@ def run_batch_simulation(
             submit_result = client.submit_alpha(alpha_id)
             submitted = submit_result.get("ok", False)
 
+            if submitted:
+                record_alpha_result(
+                    alpha_id=alpha_id, expression=expression, status="ACTIVE",
+                    region=region, universe=universe, neutralization=neut,
+                    decay=decay, delay=delay_val, fitness=m["fitness"], sharpe=m["sharpe"],
+                    returns=m["returns"], turnover=m["turnover"], tag=tag,
+                )
+            elif "SC FAIL" in submit_result.get("detail", ""):
+                record_alpha_result(
+                    alpha_id=alpha_id, expression=expression, status="SC_FAIL",
+                    region=region, universe=universe, neutralization=neut,
+                    decay=decay, delay=delay_val, fitness=m["fitness"], sharpe=m["sharpe"],
+                    returns=m["returns"], turnover=m["turnover"],
+                    sc=submit_result.get("sc_value"), tag=tag,
+                )
+
+        # Record simulation failures regardless of auto_submit
+        if not submitted and alpha_id:
+            _sharpe = m["sharpe"] or 0
+            _fitness = m["fitness"] or 0
+            if _fitness < 1.0 or _sharpe < 1.25:
+                fail_status = "LOW_FITNESS_FAIL" if _fitness < 1.0 else "LOW_SHARPE_FAIL"
+                try:
+                    record_alpha_result(
+                        alpha_id=alpha_id, expression=expression, status=fail_status,
+                        region=region, universe=universe, neutralization=neut,
+                        decay=decay, delay=delay_val, fitness=m["fitness"], sharpe=m["sharpe"],
+                        returns=m["returns"], turnover=m["turnover"], tag=tag,
+                    )
+                except Exception as e:
+                    logger.warning(f"batch record fail {alpha_id}: {e}")
+
         if submitted and alpha_id and user_id:
             _track_alpha(
                 user_id=user_id, alpha_id=alpha_id, expression=expression,
