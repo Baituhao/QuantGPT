@@ -29,3 +29,6 @@ frontend/dist/
 .DS_Store
 .vscode/
 .idea/
+.tmp_alpha_idea_extracted/
+WQB-ALPHA-IDEA/
+NOTE.MD
