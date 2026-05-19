@@ -63,3 +63,7 @@ engine/Cargo.lock
 # Coverage
 .coverage
 htmlcov/
+
+# Temporary / local research artifacts
+.tmp_alpha_idea_extracted/
+WQB-ALPHA-IDEA/
